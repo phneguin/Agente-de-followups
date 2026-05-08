@@ -1,0 +1,17 @@
+# Credenciais — NUNCA subir para o GitHub
+.env
+
+# Banco de dados local
+*.db
+*.sqlite
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db
