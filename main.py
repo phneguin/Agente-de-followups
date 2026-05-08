@@ -76,7 +76,7 @@ async def webhook(request: Request):
     """
     # Valida token de segurança do webhook (Z-API envia no header)
     client_token = request.headers.get("client-token") or request.headers.get("Client-Token")
-    if client_token and client_token != settings.ZAPI_CLIENT_TOKEN:
+    if client_token and settings.ZAPI_CLIENT_TOKEN and client_token != settings.ZAPI_CLIENT_TOKEN:
         logger.warning("Webhook recebido com token inválido.")
         raise HTTPException(status_code=401, detail="Unauthorized")
 
