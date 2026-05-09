@@ -106,6 +106,14 @@ async def webhook(request: Request):
         contact_name = contact.get("name") or contact.get("fullName") or contact_name
         deal = moskit.get_active_deal_for_contact(contact_id)
         if deal:
+            responsible = deal.get("responsible") or deal.get("user") or {}
+            responsible_id = str(
+                responsible.get("id", "") if isinstance(responsible, dict)
+                else responsible
+            )
+            if responsible_id and responsible_id != str(settings.MOSKIT_USER_ID):
+                return JSONResponse({"status": "ignored_other_user"})
+
             deal_id = str(deal.get("id", ""))
             deal_name = deal.get("name", "Negócio")
             deal_summary = moskit.summarize_deal_for_context(deal)
