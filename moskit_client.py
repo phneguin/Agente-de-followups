@@ -22,12 +22,13 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://api.moskitcrm.com/v2"
+BASE_URL = "https://app.ms.prod.moskit.services"
 
 HEADERS = {
     "Apikey": settings.MOSKIT_API_KEY,
     "Content-Type": "application/json",
-    "Accept": "application/json",
+    "Accept": "*/*",
+    "Origin": "https://app.moskitcrm.com",
 }
 
 
@@ -82,10 +83,10 @@ def _put(path: str, payload: dict) -> Optional[dict]:
 
 def get_pending_activities(user_id: str) -> list[dict]:
     """
-    Retorna todas as atividades pendentes (status=open) do usuário para hoje.
-    A API do Moskit retorna atividades paginadas; buscamos até 100 por chamada.
+    Retorna todas as atividades pendentes (status=open) do usuário.
+    Usa o endpoint real do Moskit: /app/activity/search
     """
-    data = _get("/activities", params={
+    data = _get("/app/activity/search", params={
         "responsibleId": user_id,
         "status": "open",
         "page": 1,
@@ -97,7 +98,7 @@ def get_pending_activities(user_id: str) -> list[dict]:
 
     # A API pode retornar { "data": [...] } ou diretamente uma lista
     if isinstance(data, dict):
-        return data.get("data", data.get("activities", []))
+        return data.get("data", data.get("activities", data.get("content", [])))
     return data if isinstance(data, list) else []
 
 
