@@ -22,7 +22,7 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://app.ms.prod.moskit.services/v2"
+BASE_URL = "https://api.moskitcrm.com/v2"
 
 HEADERS = {
     "Apikey": settings.MOSKIT_API_KEY,
