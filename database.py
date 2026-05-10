@@ -198,7 +198,7 @@ def get_pending_followups() -> list:
             FROM follow_ups f
             JOIN clients c ON f.client_id = c.id
             WHERE f.status = 'pending'
-              AND f.scheduled_at <= NOW()
+              AND f.scheduled_at <= (NOW() AT TIME ZONE 'America/Sao_Paulo')
             ORDER BY f.scheduled_at ASC
         """)
         return _to_dicts(cur, cur.fetchall())
@@ -300,7 +300,9 @@ def get_stats() -> dict:
         cur.execute("SELECT COUNT(*) FROM follow_ups WHERE status = 'pending'"); pend = cur.fetchone()[0]
         cur.execute("""
             SELECT COUNT(*) FROM messages
-            WHERE direction = 'outbound' AND sent_at::date = CURRENT_DATE
+            WHERE direction = 'outbound'
+              AND (sent_at AT TIME ZONE 'America/Sao_Paulo')::date
+                  = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
         """); sent = cur.fetchone()[0]
         return {
             "total_clients": total,
