@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agente de Follow-up — Metalsol</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple:#7C3AED;--purple-light:#EDE9FE;--purple-dark:#5B21B6;
+  --green:#10B981;--green-light:#D1FAE5;
+  --amber:#F59E0B;--amber-light:#FEF3C7;
+  --red:#EF4444;--red-light:#FEE2E2;
+  --blue:#3B82F6;--blue-light:#DBEAFE;
+  --gray-50:#F8FAFC;--gray-100:#F1F5F9;--gray-200:#E2E8F0;
+  --gray-400:#94A3B8;--gray-600:#475569;--gray-800:#1E293B;--gray-900:#0F172A;
+  --shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);
+}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--gray-50);color:var(--gray-800);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Header ── */
+header{background:var(--purple);color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:var(--shadow-lg)}
+.logo{font-size:17px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.logo span{font-size:22px}
+.stats-bar{display:flex;gap:20px}
+.stat{display:flex;align-items:center;gap:6px;font-size:13px;opacity:.9}
+.stat-num{font-weight:700;font-size:15px;opacity:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.btn-white{background:#fff;color:var(--purple)}
+.btn-white:hover{background:var(--purple-light)}
+.btn-primary{background:var(--purple);color:#fff}
+.btn-primary:hover{background:var(--purple-dark)}
+.btn-ghost{background:transparent;color:var(--gray-600);border:1px solid var(--gray-200)}
+.btn-ghost:hover{background:var(--gray-100)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-danger{background:var(--red-light);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;background:var(--purple-dark);padding:0 24px}
+.tab{padding:10px 20px;font-size:13px;font-weight:600;color:rgba(255,255,255,.65);cursor:pointer;border-bottom:3px solid transparent;transition:.15s}
+.tab.active{color:#fff;border-bottom-color:#fff}
+.tab:hover{color:#fff}
+
+/* ── Main layout ── */
+.main{flex:1;display:flex;overflow:hidden}
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Kanban ── */
+.kanban{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.column{background:var(--gray-100);border-radius:12px;padding:16px;min-height:200px}
+.col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.col-title{font-size:14px;font-weight:700;color:var(--gray-800);display:flex;align-items:center;gap:8px}
+.badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700}
+.badge-contato{background:var(--blue-light);color:var(--blue)}
+.badge-neg{background:var(--purple-light);color:var(--purple)}
+.cards{display:flex;flex-direction:column;gap:10px}
+
+/* ── Client card ── */
+.card{background:#fff;border-radius:10px;padding:14px 16px;cursor:pointer;border:2px solid transparent;transition:.15s;box-shadow:var(--shadow)}
+.card:hover{border-color:var(--purple);box-shadow:var(--shadow-lg)}
+.card-name{font-weight:700;font-size:14px;color:var(--gray-900);margin-bottom:3px}
+.card-phone{font-size:12px;color:var(--gray-400);margin-bottom:8px}
+.card-meta{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.chip-followup{background:var(--amber-light);color:#92400E}
+.chip-value{background:var(--green-light);color:#065F46}
+.chip-late{background:var(--red-light);color:var(--red)}
+.chip-none{background:var(--gray-100);color:var(--gray-400)}
+
+/* ── Side panel ── */
+.panel{width:420px;background:#fff;border-left:1px solid var(--gray-200);overflow-y:auto;flex-shrink:0;display:none;flex-direction:column}
+.panel.open{display:flex}
+.panel-header{padding:18px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;background:#fff;position:sticky;top:0;z-index:2}
+.panel-name{font-size:17px;font-weight:700;margin-bottom:3px}
+.panel-phone{font-size:13px;color:var(--gray-400)}
+.close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-400);line-height:1;padding:2px}
+.close-btn:hover{color:var(--gray-800)}
+.panel-body{padding:16px 20px;flex:1}
+.panel-section{margin-bottom:20px}
+.section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);margin-bottom:10px}
+
+/* ── Info grid ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-item label{display:block;font-size:11px;color:var(--gray-400);margin-bottom:3px}
+.info-item span{font-size:13px;font-weight:600;color:var(--gray-800)}
+.stage-select,.notes-area{width:100%;border:1px solid var(--gray-200);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;background:#fff;color:var(--gray-800)}
+.stage-select:focus,.notes-area:focus{outline:none;border-color:var(--purple)}
+.notes-area{resize:vertical;min-height:70px}
+
+/* ── Messages ── */
+.messages{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding:4px 0}
+.msg{max-width:88%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.4}
+.msg-out{align-self:flex-end;background:var(--purple);color:#fff;border-bottom-right-radius:4px}
+.msg-in{align-self:flex-start;background:var(--gray-100);color:var(--gray-800);border-bottom-left-radius:4px}
+.msg-time{font-size:10px;opacity:.65;margin-top:3px}
+.msg-empty{text-align:center;font-size:12px;color:var(--gray-400);padding:20px}
+
+/* ── Follow-ups list ── */
+.fu-list{display:flex;flex-direction:column;gap:8px}
+.fu-item{padding:10px 12px;border-radius:8px;border-left:3px solid var(--gray-200);background:var(--gray-50);display:flex;justify-content:space-between;align-items:flex-start}
+.fu-item.pending{border-left-color:var(--amber)}
+.fu-item.done{border-left-color:var(--green);opacity:.6}
+.fu-item.late{border-left-color:var(--red)}
+.fu-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.fu-date{font-size:11px;color:var(--gray-400)}
+.fu-notes{font-size:11px;color:var(--gray-600);margin-top:3px;font-style:italic}
+
+/* ── Activity log ── */
+.log-list{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto}
+.log-item{padding:10px 12px;border-radius:8px;background:var(--gray-50);border:1px solid var(--gray-200)}
+.log-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.log-action{font-size:11px;font-weight:700;color:var(--purple)}
+.log-date{font-size:10px;color:var(--gray-400)}
+.log-desc{font-size:12px;color:var(--gray-600)}
+.moskit-note-box{background:var(--amber-light);border:1px solid #FCD34D;border-radius:8px;padding:10px 12px;margin-top:6px}
+.moskit-note-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:4px}
+.moskit-note-text{font-size:12px;color:#78350F;white-space:pre-wrap;line-height:1.4}
+.copy-btn{font-size:10px;padding:3px 8px;background:#FDE68A;border:1px solid #FCD34D;border-radius:4px;cursor:pointer;color:#92400E;font-weight:600;margin-top:6px}
+.copy-btn:hover{background:#FCD34D}
+
+/* ── Reports tab ── */
+.report-filter{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.report-filter select,.report-filter input{border:1px solid var(--gray-200);border-radius:8px;padding:7px 12px;font-size:13px;background:#fff;color:var(--gray-800)}
+.report-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid var(--gray-200)}
+.report-card.followup_sent{border-left-color:var(--purple)}
+.report-card.reply_sent{border-left-color:var(--blue)}
+.report-card.escalated{border-left-color:var(--red)}
+.report-card-header{display:flex;justify-content:space-between;margin-bottom:8px}
+.report-card-client{font-weight:700;font-size:14px}
+.report-card-date{font-size:12px;color:var(--gray-400)}
+.report-card-action{font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px}
+.tag-sent{background:var(--purple-light);color:var(--purple-dark)}
+.tag-reply{background:var(--blue-light);color:var(--blue)}
+.tag-esc{background:var(--red-light);color:var(--red)}
+
+/* ── Modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:480px;max-width:95vw;box-shadow:var(--shadow-lg)}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;transition:.15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-light)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.error-msg{font-size:12px;color:var(--red);margin-top:4px;display:none}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--gray-900);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;transform:translateY(80px);opacity:0;transition:.3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:40px 20px;color:var(--gray-400)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-title{font-size:15px;font-weight:600;color:var(--gray-600);margin-bottom:6px}
+.empty-sub{font-size:13px}
+
+/* ── Loading ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--gray-400);font-size:14px;gap:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:20px;height:20px;border:2px solid var(--gray-200);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--gray-400)}
+
+/* ── FU schedule form ── */
+.fu-form{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.fu-form input{flex:1;min-width:160px;border:1px solid var(--gray-200);border-radius:8px;padding:7px 10px;font-size:12px}
+.fu-form input:focus{outline:none;border-color:var(--purple)}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo"><span>⚡</span>Agente de Follow-up</div>
+  <div class="stats-bar">
+    <div class="stat">👥 <span class="stat-num" id="stat-total">—</span> clientes</div>
+    <div class="stat">⏰ <span class="stat-num" id="stat-pending">—</span> pendentes</div>
+    <div class="stat">✅ <span class="stat-num" id="stat-sent">—</span> enviados hoje</div>
+  </div>
+  <button class="btn btn-white" onclick="openModal()">+ Novo Cliente</button>
+</header>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('pipeline',this)">📋 Pipeline</div>
+  <div class="tab" onclick="switchTab('reports',this)">📊 Relatórios</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="content" id="content">
+
+    <!-- Pipeline view -->
+    <div id="view-pipeline">
+      <div class="kanban">
+        <div class="column">
+          <div class="col-header">
+            <div class="col-title">
+              📞 Em Contato
+              <span class="badge badge-contato" id="count-contato">0</span>
+            </div>
+          </div>
+          <div class="cards" id="col-contato"></div>
+        </div>
+        <div class="column">
+          <div class="col-header">
+            <div class="col-title">
+              🤝 Em Negociação
+              <span class="badge badge-neg" id="count-neg">0</span>
+            </div>
+          </div>
+          <div class="cards" id="col-neg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports view -->
+    <div id="view-reports" style="display:none">
+      <div class="report-filter">
+        <input type="text" id="report-search" placeholder="🔍 Buscar cliente..." oninput="filterReports()" style="width:220px">
+        <select id="report-type" onchange="filterReports()">
+          <option value="">Todos os tipos</option>
+          <option value="followup_sent">Follow-up enviado</option>
+          <option value="reply_sent">Resposta enviada</option>
+          <option value="escalated">Escalado</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadReports()">↺ Atualizar</button>
+      </div>
+      <div id="reports-list"></div>
+    </div>
+
+  </div>
+
+  <!-- Side panel -->
+  <div class="panel" id="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-name" id="panel-name">—</div>
+        <div class="panel-phone" id="panel-phone">—</div>
+      </div>
+      <button class="close-btn" onclick="closePanel()">×</button>
+    </div>
+    <div class="panel-body" id="panel-body">
+      <div class="loading"><div class="spinner"></div> Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal novo cliente -->
+<div class="overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Novo Cliente</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nome completo</label>
+        <input type="text" id="f-name" placeholder="João Silva"/>
+        <div class="error-msg" id="err-name">Obrigatório</div>
+      </div>
+      <div class="form-group">
+        <label>WhatsApp</label>
+        <input type="text" id="f-phone" placeholder="31988706010"/>
+        <div class="error-msg" id="err-phone">Obrigatório</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Etapa</label>
+        <select id="f-stage">
+          <option value="em_contato">Em Contato</option>
+          <option value="em_negociacao">Em Negociação</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor estimado (R$)</label>
+        <input type="number" id="f-value" placeholder="0" min="0"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Observações / contexto da negociação</label>
+      <textarea id="f-notes" placeholder="Ex: Cliente viu proposta de 10kWp, quer financiamento, tem reunião agendada..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="modal-save" onclick="saveClient()">Salvar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Estado global ──────────────────────────────────────────────────────────
+let clients = [];
+let allReports = [];
+let currentClientId = null;
+let editMode = false;
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadAll();
+  setInterval(loadStats, 60000); // atualiza stats a cada 1min
+});
+
+async function loadAll() {
+  await Promise.all([loadStats(), loadClients()]);
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const s = await api('/api/stats');
+    document.getElementById('stat-total').textContent   = s.total_clients;
+    document.getElementById('stat-pending').textContent = s.pending_followups;
+    document.getElementById('stat-sent').textContent    = s.sent_today;
+  } catch(_) {}
+}
+
+// ── Clients ────────────────────────────────────────────────────────────────
+async function loadClients() {
+  try {
+    clients = await api('/api/clients');
+    renderKanban();
+  } catch(e) {
+    showToast('Erro ao carregar clientes', 'error');
+  }
+}
+
+function renderKanban() {
+  const contato = clients.filter(c => c.stage === 'em_contato');
+  const neg     = clients.filter(c => c.stage === 'em_negociacao');
+
+  document.getElementById('count-contato').textContent = contato.length;
+  document.getElementById('count-neg').textContent     = neg.length;
+
+  document.getElementById('col-contato').innerHTML = renderCards(contato);
+  document.getElementById('col-neg').innerHTML     = renderCards(neg);
+}
+
+function renderCards(list) {
+  if (!list.length) {
+    return `<div class="empty"><div class="empty-icon">📭</div>
+            <div class="empty-sub">Nenhum cliente nesta etapa</div></div>`;
+  }
+  return list.map(c => {
+    const next = c.next_followup_at ? formatRelative(c.next_followup_at) : null;
+    const isLate = c.next_followup_at && new Date(c.next_followup_at.replace(' ','T')) < new Date();
+    const chipClass = isLate ? 'chip-late' : 'chip-followup';
+    const chipIcon  = isLate ? '⚠️' : '⏰';
+    const chipLabel = next ? `${chipIcon} ${next}` : null;
+    const valueChip = c.value > 0
+      ? `<span class="chip chip-value">💰 R$ ${c.value.toLocaleString('pt-BR')}</span>` : '';
+    const fuChip = chipLabel
+      ? `<span class="chip ${chipClass}">${chipLabel}</span>` : '';
+    const noFu = !c.pending_followups
+      ? `<span class="chip chip-none">sem follow-up</span>` : '';
+    return `
+      <div class="card" onclick="openPanel(${c.id})">
+        <div class="card-name">${esc(c.name)}</div>
+        <div class="card-phone">📱 ${formatPhone(c.phone)}</div>
+        <div class="card-meta">${fuChip}${valueChip}${noFu}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Panel ──────────────────────────────────────────────────────────────────
+async function openPanel(id) {
+  currentClientId = id;
+  const panel = document.getElementById('panel');
+  panel.classList.add('open');
+  document.getElementById('panel-name').textContent  = '...';
+  document.getElementById('panel-phone').textContent = '...';
+  document.getElementById('panel-body').innerHTML =
+    '<div class="loading"><div class="spinner"></div> Carregando...</div>';
+
+  try {
+    const c = await api(`/api/clients/${id}`);
+    document.getElementById('panel-name').textContent  = c.name;
+    document.getElementById('panel-phone').textContent = `📱 ${formatPhone(c.phone)}`;
+    document.getElementById('panel-body').innerHTML    = renderPanel(c);
+  } catch(e) {
+    document.getElementById('panel-body').innerHTML =
+      '<div class="empty">Erro ao carregar cliente.</div>';
+  }
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  currentClientId = null;
+}
+
+function renderPanel(c) {
+  const stageLabel = c.stage === 'em_contato' ? 'Em Contato' : 'Em Negociação';
+  const msgs    = c.messages    || [];
+  const fus     = c.followups   || [];
+  const logList = c.activity_log || [];
+
+  // Mensagens
+  const msgsHtml = msgs.length === 0
+    ? '<div class="msg-empty">Nenhuma mensagem ainda</div>'
+    : msgs.map(m => `
+        <div class="msg ${m.direction === 'outbound' ? 'msg-out' : 'msg-in'}">
+          ${esc(m.content)}
+          <div class="msg-time">${formatDate(m.sent_at)}</div>
+        </div>`).join('');
+
+  // Follow-ups pendentes
+  const pendingFus = fus.filter(f => f.status === 'pending');
+  const doneFus    = fus.filter(f => f.status !== 'pending').slice(0, 3);
+  const fuHtml = [...pendingFus, ...doneFus].map(f => {
+    const isLate = f.status === 'pending' && new Date(f.scheduled_at.replace(' ','T')) < new Date();
+    const cls = f.status !== 'pending' ? 'done' : (isLate ? 'late' : 'pending');
+    const icon = f.status !== 'pending' ? '✅' : (isLate ? '⚠️' : '⏰');
+    return `
+      <div class="fu-item ${cls}">
+        <div>
+          <div class="fu-title">${icon} ${esc(f.title)}</div>
+          <div class="fu-date">${formatDate(f.scheduled_at)}</div>
+          ${f.ai_notes ? `<div class="fu-notes">${esc(f.ai_notes)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('') || '<div class="msg-empty">Nenhum follow-up agendado</div>';
+
+  // Activity log
+  const logHtml = logList.slice(0, 5).map(l => {
+    const tagMap = {followup_sent:'tag-sent',reply_sent:'tag-reply',escalated:'tag-esc'};
+    const labelMap = {followup_sent:'Follow-up enviado',reply_sent:'Resposta enviada',escalated:'Escalado'};
+    const iconMap  = {followup_sent:'✅',reply_sent:'💬',escalated:'⚠️'};
+    const tag   = tagMap[l.action_type]   || '';
+    const label = labelMap[l.action_type] || l.action_type;
+    const icon  = iconMap[l.action_type]  || '📌';
+    const noteHtml = l.moskit_note ? `
+      <div class="moskit-note-box">
+        <div class="moskit-note-label">📋 Nota para o Moskit</div>
+        <div class="moskit-note-text" id="note-${l.id}">${esc(l.moskit_note)}</div>
+        <button class="copy-btn" onclick="copyNote('note-${l.id}')">📋 Copiar</button>
+      </div>` : '';
+    return `
+      <div class="log-item">
+        <div class="log-header">
+          <span class="log-action">${icon} <span class="report-card-action ${tag}">${label}</span></span>
+          <span class="log-date">${formatDate(l.created_at)}</span>
+        </div>
+        <div class="log-desc">${esc(l.description)}</div>
+        ${noteHtml}
+      </div>`;
+  }).join('') || '<div class="msg-empty">Sem atividades registradas</div>';
+
+  return `
+    <!-- Info do cliente -->
+    <div class="panel-section">
+      <div class="section-title">Informações</div>
+      <div class="info-grid" style="margin-bottom:10px">
+        <div class="info-item"><label>Etapa</label><span>${stageLabel}</span></div>
+        <div class="info-item"><label>Valor</label><span>${c.value > 0 ? 'R$ ' + c.value.toLocaleString('pt-BR') : '—'}</span></div>
+        <div class="info-item"><label>Cadastrado em</label><span>${formatDate(c.created_at)}</span></div>
+        <div class="info-item"><label>Follow-ups pendentes</label><span>${c.pending_followups || 0}</span></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;display:block;margin-bottom:4px">Etapa</label>
+        <select class="stage-select" onchange="changeStage(${c.id},this.value)">
+          <option value="em_contato"    ${c.stage==='em_contato'    ?'selected':''}>Em Contato</option>
+          <option value="em_negociacao" ${c.stage==='em_negociacao' ?'selected':''}>Em Negociação</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;display:block;margin-bottom:4px">Observações</label>
+        <textarea class="notes-area" id="notes-${c.id}" onblur="saveNotes(${c.id})">${esc(c.notes||'')}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-primary btn-sm" onclick="openEditModal(${c.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete(${c.id},'${esc(c.name)}')">🗑️ Remover</button>
+      </div>
+    </div>
+
+    <!-- Agendar follow-up manual -->
+    <div class="panel-section">
+      <div class="section-title">Agendar Follow-up Manual</div>
+      <div class="fu-form">
+        <input type="datetime-local" id="fu-date-${c.id}" />
+        <input type="text" id="fu-title-${c.id}" placeholder="Título (opcional)" style="flex:2"/>
+        <button class="btn btn-primary btn-sm" onclick="scheduleFollowup(${c.id})">Agendar</button>
+      </div>
+    </div>
+
+    <!-- Follow-ups -->
+    <div class="panel-section">
+      <div class="section-title">Follow-ups</div>
+      <div class="fu-list">${fuHtml}</div>
+    </div>
+
+    <!-- Mensagens -->
+    <div class="panel-section">
+      <div class="section-title">Conversa WhatsApp</div>
+      <div class="messages" id="msgs-${c.id}">${msgsHtml}</div>
+    </div>
+
+    <!-- Log de atividades -->
+    <div class="panel-section">
+      <div class="section-title">Histórico & Notas para o Moskit</div>
+      <div class="log-list">${logHtml}</div>
+    </div>
+  `;
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+async function changeStage(id, stage) {
+  try {
+    await api(`/api/clients/${id}`, 'PUT', { stage });
+    await loadClients();
+    showToast('Etapa atualizada ✓', 'success');
+  } catch(e) { showToast('Erro ao atualizar', 'error'); }
+}
+
+async function saveNotes(id) {
+  const notes = document.getElementById(`notes-${id}`)?.value || '';
+  try {
+    await api(`/api/clients/${id}`, 'PUT', { notes });
+  } catch(_) {}
+}
+
+async function scheduleFollowup(id) {
+  const dt    = document.getElementById(`fu-date-${id}`)?.value;
+  const title = document.getElementById(`fu-title-${id}`)?.value || 'Follow-up manual';
+  if (!dt) { showToast('Selecione data e hora', 'error'); return; }
+  // Converte para formato "YYYY-MM-DD HH:MM:SS"
+  const scheduled = dt.replace('T', ' ') + ':00';
+  try {
+    await api(`/api/clients/${id}/followups`, 'POST', { scheduled_at: scheduled, title });
+    showToast('Follow-up agendado ✓', 'success');
+    openPanel(id); // reload
+  } catch(e) { showToast('Erro ao agendar', 'error'); }
+}
+
+async function confirmDelete(id, name) {
+  if (!confirm(`Remover "${name}" e todo o histórico?`)) return;
+  try {
+    await api(`/api/clients/${id}`, 'DELETE');
+    closePanel();
+    await loadClients();
+    showToast('Cliente removido', 'success');
+  } catch(e) { showToast('Erro ao remover', 'error'); }
+}
+
+function copyNote(elemId) {
+  const text = document.getElementById(elemId)?.innerText || '';
+  navigator.clipboard.writeText(text).then(() => showToast('Copiado! Cole no Moskit ✓', 'success'));
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────
+function openModal() {
+  editMode = false;
+  currentClientId = null;
+  document.getElementById('modal-title').textContent = 'Novo Cliente';
+  document.getElementById('modal-save').textContent  = 'Salvar Cliente';
+  document.getElementById('f-name').value   = '';
+  document.getElementById('f-phone').value  = '';
+  document.getElementById('f-stage').value  = 'em_contato';
+  document.getElementById('f-value').value  = '';
+  document.getElementById('f-notes').value  = '';
+  document.getElementById('err-name').style.display  = 'none';
+  document.getElementById('err-phone').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-name').focus(), 100);
+}
+
+async function openEditModal(id) {
+  const c = await api(`/api/clients/${id}`);
+  editMode = true;
+  currentClientId = id;
+  document.getElementById('modal-title').textContent = 'Editar Cliente';
+  document.getElementById('modal-save').textContent  = 'Salvar Alterações';
+  document.getElementById('f-name').value   = c.name;
+  document.getElementById('f-phone').value  = c.phone;
+  document.getElementById('f-stage').value  = c.stage;
+  document.getElementById('f-value').value  = c.value || '';
+  document.getElementById('f-notes').value  = c.notes || '';
+  document.getElementById('err-name').style.display  = 'none';
+  document.getElementById('err-phone').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+async function saveClient() {
+  const name  = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  let valid = true;
+  if (!name)  { document.getElementById('err-name').style.display  = 'block'; valid = false; }
+  else          document.getElementById('err-name').style.display  = 'none';
+  if (!phone) { document.getElementById('err-phone').style.display = 'block'; valid = false; }
+  else          document.getElementById('err-phone').style.display = 'none';
+  if (!valid) return;
+
+  const payload = {
+    name, phone,
+    stage: document.getElementById('f-stage').value,
+    value: parseFloat(document.getElementById('f-value').value) || 0,
+    notes: document.getElementById('f-notes').value.trim(),
+  };
+
+  try {
+    if (editMode && currentClientId) {
+      await api(`/api/clients/${currentClientId}`, 'PUT', payload);
+      showToast('Cliente atualizado ✓', 'success');
+    } else {
+      await api('/api/clients', 'POST', payload);
+      showToast('Cliente cadastrado! Follow-up agendado para amanhã ✓', 'success');
+    }
+    closeModal();
+    await loadClients();
+    if (editMode && currentClientId) openPanel(currentClientId);
+  } catch(e) {
+    showToast(e.message || 'Erro ao salvar', 'error');
+  }
+}
+
+// Enter no modal salva
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closePanel(); }
+});
+
+// ── Reports ────────────────────────────────────────────────────────────────
+async function loadReports() {
+  document.getElementById('reports-list').innerHTML =
+    '<div class="loading"><div class="spinner"></div> Carregando...</div>';
+  try {
+    allReports = await api('/api/reports?limit=200');
+    filterReports();
+  } catch(e) {
+    document.getElementById('reports-list').innerHTML =
+      '<div class="empty">Erro ao carregar relatórios.</div>';
+  }
+}
+
+function filterReports() {
+  const search = document.getElementById('report-search').value.toLowerCase();
+  const type   = document.getElementById('report-type').value;
+  const filtered = allReports.filter(r => {
+    const matchSearch = !search ||
+      (r.client_name || '').toLowerCase().includes(search) ||
+      (r.description || '').toLowerCase().includes(search);
+    const matchType = !type || r.action_type === type;
+    return matchSearch && matchType;
+  });
+
+  if (!filtered.length) {
+    document.getElementById('reports-list').innerHTML =
+      '<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Nenhum registro encontrado</div></div>';
+    return;
+  }
+
+  const actionLabel = {followup_sent:'✅ Follow-up enviado',reply_sent:'💬 Resposta enviada',escalated:'⚠️ Escalado'};
+  const tagClass    = {followup_sent:'tag-sent',reply_sent:'tag-reply',escalated:'tag-esc'};
+
+  document.getElementById('reports-list').innerHTML = filtered.map(r => {
+    const label = actionLabel[r.action_type] || r.action_type;
+    const tag   = tagClass[r.action_type]   || '';
+    const noteHtml = r.moskit_note ? `
+      <div class="moskit-note-box" style="margin-top:10px">
+        <div class="moskit-note-label">📋 Nota para o Moskit</div>
+        <div class="moskit-note-text" id="rep-note-${r.id}">${esc(r.moskit_note)}</div>
+        <button class="copy-btn" onclick="copyNote('rep-note-${r.id}')">📋 Copiar para o Moskit</button>
+      </div>` : '';
+    const aiHtml = r.ai_message ? `
+      <div style="margin-top:8px;padding:8px 10px;background:#F8FAFC;border-radius:6px;font-size:12px;color:var(--gray-600)">
+        <strong>Mensagem enviada:</strong> ${esc(r.ai_message)}
+      </div>` : '';
+    const clientHtml = r.client_response ? `
+      <div style="margin-top:6px;padding:8px 10px;background:#DBEAFE;border-radius:6px;font-size:12px;color:#1E3A5F">
+        <strong>Resposta do cliente:</strong> ${esc(r.client_response)}
+      </div>` : '';
+    return `
+      <div class="report-card ${r.action_type}">
+        <div class="report-card-header">
+          <div>
+            <div class="report-card-client">${esc(r.client_name || '—')}</div>
+            <div class="report-card-date">${formatDate(r.created_at)} · ${esc(r.phone||'')}</div>
+          </div>
+          <span class="report-card-action ${tag}">${label}</span>
+        </div>
+        ${aiHtml}${clientHtml}${noteHtml}
+      </div>`;
+  }).join('');
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('view-pipeline').style.display = name === 'pipeline' ? '' : 'none';
+  document.getElementById('view-reports').style.display  = name === 'reports'  ? '' : 'none';
+  if (name === 'reports') loadReports();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+async function api(url, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function formatPhone(p) {
+  if (!p) return '—';
+  const d = p.replace(/\D/g,'');
+  if (d.length === 13) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,9)}-${d.slice(9)}`;
+  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  return p;
+}
+
+function formatDate(s) {
+  if (!s) return '—';
+  try {
+    const d = new Date(s.replace(' ','T'));
+    return d.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit'});
+  } catch(_) { return s; }
+}
+
+function formatRelative(s) {
+  if (!s) return null;
+  try {
+    const d   = new Date(s.replace(' ','T'));
+    const now = new Date();
+    const diff = Math.floor((d - now) / 86400000);
+    if (diff < 0)  return `atrasado ${Math.abs(diff)}d`;
+    if (diff === 0) return 'hoje';
+    if (diff === 1) return 'amanhã';
+    return `em ${diff}d`;
+  } catch(_) { return s; }
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent  = msg;
+  t.className    = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast'; }, 3500);
+}
+</script>
+</body>
+</html>
